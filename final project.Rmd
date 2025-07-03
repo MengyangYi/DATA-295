@@ -1,0 +1,109 @@
+---
+title: "Is there any relationship between GDP and life expectancy? "
+author: "Mengyang Yi"
+date: "2024-04-27"
+output: html_document
+---
+
+## Introduction
+Understanding the relationship between a country's Gross Domestic Product (GDP) and life expectancy is crucial for policymakers and researchers alike. This project aims to explore the potential links between these two key indicators. While economic development is often associated with improved healthcare and living standards, the nuances of how GDP influences life expectancy require deeper investigation. By analyzing data across various countries and time periods, this study seeks to provide insights into the complex interplay between economic factors and population health outcomes.For this project, I choose 5 countries ranging from 1960 to 2013 to analyze--China, Bangladesh, Mexico, Peru, and Poland.
+
+Let's look at the data at first...
+
+## The data
+To begin our analysis on the relationship between GDP and life expectancy, the first step is to gather and preprocess the necessary datasets. We will focus on two primary datasets: one containing life expectancy data and another containing GDP data for various countries over a specified time period. 
+
+For the Life expectancy dataset, I will use pivot longer to consolidate all the years into a single column. Then I will filter it out and only maintain the information that i want.For the GDP dataset, I will only maintain the mean of the GDP for each selected countries. In the end, I will combine these two datasets and establish a new dataset called "GDP_Life_Expectancy".
+```{r setup, include=FALSE}
+library(readr)
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+```
+
+```{r tidy data, echo=FALSE, message=FALSE}
+GDP <- read_csv("Data/GDP.CSV")
+LifeExpectancy <- read_xls("Data/LifeExpectancy.xls")
+
+LifeExpectancy <- LifeExpectancy |>
+  pivot_longer(cols = `1960`:`2013`, names_to = "year", values_to = "Life_Expectancy") |>
+  mutate(year = as.integer(year)) |>
+  filter(`Country Name` %in% c("China", "Bangladesh", "Mexico", "Peru", "Poland"),
+         year >= 1960 & year <= 2013) |>
+  rename(country = `Country Name`) |>
+  select(country, year, Life_Expectancy)
+
+GDP <- GDP |>
+  filter(location_name %in% c("China", "Bangladesh", "Mexico", "Peru", "Poland"),
+         year >= 1960 & year <= 2013) |>
+  select(location_name, year, gdp_ppp_mean, gdp_usd_mean) |>
+  rename(country = location_name)
+
+GDP_Life_Expectancy <- full_join(LifeExpectancy, GDP, by = c("country", "year"))
+
+file_path <- "Data/GDP_Life_Expectancy.csv"
+write.csv(GDP_Life_Expectancy, file = file_path, row.names = FALSE)
+print(GDP_Life_Expectancy)
+
+```
+## The result
+Let's draw the plot to see what we can get...
+  ```{r graph, echo=FALSE}
+GDP_Life_Expectancy |>
+  ggplot(aes(year,Life_Expectancy,color = country))+
+  geom_line()+
+  theme_linedraw()+
+  labs(x = "Year", y = "Life Expectancy", title = "Life Expectancy Over Time by Country") +
+  facet_wrap(~ country)
+ggplot(data = GDP_Life_Expectancy, aes(x = year, y = gdp_usd_mean, color = country)) +
+  geom_line() +
+  theme_linedraw()+
+  labs(x = "Year", y = "GDP (USD)", title = "GDP Over Time by Country") +
+  facet_wrap(~ country)
+```
+The graph above illustrates a positive correlation between life expectancy and year for each country. Perhaps this is the result of society changing and individuals being more health-concerned. We also can tell that there is a positive correlation between GDP and year for each country.Therefore, it's reasonable to question if GDP has an effect on life expectancy. Hence, it is crucial to examine the correlation between GDP and life expectancy. This may be accomplished by using the correlation approach to see whether GDP and life expectancy are significantly related. Using this statistical method, we may learn more about the possible relationship between changes in GDP and changes in life expectancy over time.
+NOTE: 
+1) A correlation coefficient close to 1 indicates a strong positive linear relationship (as GDP increases, life expectancy tends to increase).
+2) A correlation coefficient close to -1 indicates a strong negative linear relationship (as GDP increases, life expectancy tends to decrease).
+3) A correlation coefficient near 0 indicates a weak or no linear relationship between the two variables.
+```{r linear_regression1,echo=FALSE}
+cor_test <- cor.test(GDP_Life_Expectancy$gdp_usd_mean, GDP_Life_Expectancy$Life_Expectancy, method = "pearson")
+print(cor_test)
+```
+A low p-value (p-value < 2.2e-16) suggests that the correlation coefficient is statistically significant, indicating a reliable linear relationship between GDP and life expectancy. 
+
+Let's fit it into linear regression model with GDP (gdp_usd_mean) as the independent variable and life expectancy (Life_Expectancy) as the dependent variable:...
+```{r linear_regression2,echo=FALSE}
+model <- lm(Life_Expectancy ~ gdp_usd_mean, data = GDP_Life_Expectancy)
+summary(model)
+
+```
+As all the p-values are less than 0.05 in a linear regression model, it indicates that the associated predictor variable is likely to have a meaningful and statistically significant impact.
+
+So we can get a linear equation as following: Life expectancy = 58.78 + 0.001605 * GDP (USD)
+
+An intriguing issue arises: we thus wonder how long individuals will be able to live in next century...
+
+## prediction
+Identifying the relationship between year and GDP (USd) and using it as a bridge to forecast life expectancy is one potential approach. 
+```{r prediction, echo=FALSE}
+model <- lm(gdp_usd_mean ~ year , data = GDP_Life_Expectancy)
+summary(model)
+```
+By establishing the relationship between GDP and year, we can get a linear equation as : GDP (USD) = -155706.37 + 80.49* year
+Now, the things become easy, we can plug year from 2024 to 2124 to predict...
+```{r prediction graph,echo=FALSE}
+years <- seq(2024, 2124)
+GDP <- -155706.37 + 80.49 * years
+life_expectancy <- 58.78 + 0.001605 * GDP
+data <- data.frame(year = years, GDP = GDP, life_expectancy = life_expectancy)
+ggplot <-
+  ggplot(data,aes(x = year, y = life_expectancy)) +
+  geom_line() +
+  labs(x = "Years", y = "Life Expectancy")
+ggplotly(tooltip = c("year", "life_expectancy")) 
+
+```
+
