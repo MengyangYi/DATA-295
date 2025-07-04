@@ -50,7 +50,7 @@ print(GDP_Life_Expectancy)
 ```
 ## The result
 Let's draw the plot to see what we can get...
-  ```{r graph, echo=FALSE}
+```{r graph, echo=FALSE}
 GDP_Life_Expectancy |>
   ggplot(aes(year,Life_Expectancy,color = country))+
   geom_line()+
