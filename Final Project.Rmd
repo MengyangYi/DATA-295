@@ -24,8 +24,8 @@ library(plotly)
 ```
 
 ```{r tidy data, echo=FALSE, message=FALSE}
-GDP <- read_csv("Data/GDP.CSV")
-LifeExpectancy <- read_xls("Data/LifeExpectancy.xls")
+GDP <- read_csv("Raw_data/GDP.CSV")
+LifeExpectancy <- read_xls("Raw_data/LifeExpectancy.xls")
 
 LifeExpectancy <- LifeExpectancy |>
   pivot_longer(cols = `1960`:`2013`, names_to = "year", values_to = "Life_Expectancy") |>
@@ -43,7 +43,7 @@ GDP <- GDP |>
 
 GDP_Life_Expectancy <- full_join(LifeExpectancy, GDP, by = c("country", "year"))
 
-file_path <- "Data/GDP_Life_Expectancy.csv"
+file_path <- "Raw_data/GDP_Life_Expectancy.csv"
 write.csv(GDP_Life_Expectancy, file = file_path, row.names = FALSE)
 print(GDP_Life_Expectancy)
 
